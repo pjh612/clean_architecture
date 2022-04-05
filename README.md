@@ -1,2 +1,10 @@
 # clean_architecture
-clean architecture book study
+
+스터디 매주 화, 금
+
+화요일 금요일까지 각각 두장씩 읽고 각자 한 장씩 발표하기
+
+분량에 따라 유동적으로 조정
+
+화요일 - 진형 홀수 장, 시준 짝수 장
+금요일은 시준 홀수 장, 진형 짝수 장
