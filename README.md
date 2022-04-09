@@ -1,5 +1,4 @@
-# clean_architecture
-
+# clean_code
 스터디 매주 화, 금
 
 화요일 금요일까지 각각 두장씩 읽고 각자 한 장씩 발표하기
