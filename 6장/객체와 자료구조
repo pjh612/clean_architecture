@@ -1,0 +1,182 @@
+# 게터 세터
+변수를 private으로 선언하는 이유는 남들이 변수에 의존하지 않게 만들고 싶어서다.
+하지만 게터와 세터를 public하게 공개해 변수를 외부에 노출하는 것이 당연한데 왜 그럴까?
+* 나도 게터 세터를 무지성으로 써왔고 세터는 그나마 필요한 곳만 써왔다. 하지만 변수를 수정하고  해당 변수를 get하여 외부에서 써야하니 당연히 public으로 선언해야 하는 것이 아닌가? 하는 생각이 있다.
+
+# 자료 추상화
+```java
+public class Point{
+	public double x;
+    public double y;
+}
+```
+위 클래스는 구현을 외부로 노출했다. 직교 좌표계를 사용하며 개별적으로 좌표값을 설정해야 한다. 변수를 private으로 선언하더라도 게터세터를 이용하면 구현을 노출한다. 변수사이에 함수라는 계층을 포함하여도 구현이 감춰지진 않는다.
+```java
+public interface Point{
+	double getX();
+    double getY();
+    void setCartesian(double x, double y);
+    double getR();
+    double getTheta();
+    void setPolar(double r, double theta);
+}
+```
+위 인터페이스는 직교 좌표계인지 극좌표계인지 알 수 없다. 메서드가 접근 정책을 강제하고 좌표를 읽을 때는 개별적으로 읽어야 하며 설정할 때는 두 값을 한번에 설정해야 한다.
+* "그저 (형식 논리에 치우쳐) 게터세터로 변수를 다룬다고 클래스가 되지는 않는다."
+
+추상인터페이스(추상화)를 통해 사용자가 구현을 모른 채 자료의 핵심을 조작할 수 있어야 한다.
+
+```java
+public interface Vehicle{
+	double getFuelTankCapacityInGallons();
+    double getGallonsOfGasoline();
+}
+```
+위 코드는 자동차 연료상태를 구체적인 숫자 값으로 알려준다. 또한, 두 메소드가 변수값을 읽어 반환하는 게터 메소드인게 거의 확실하다.
+하지만 아래의 코드는 자동차의 연료상태를 백분율로 알려주기 때문에 추상적이다. 또한, 정보가 어디서 오는지 전혀 알 수 없다.
+```java
+public interface Vehicle{
+	double getPercentFuelRemaining();
+}
+```
+* "아무 생각 없이 게터/세터를 함수를 추가하는 방법이 가장 나쁘다."
+
+# 자료/객체 비대칭
+객체는 추상화에 자료를 숨겨 함수만 공개한다. 자료구조는 자료를 그대로 공개하며 별다른 함수를 제공하지 않는다.
+```java
+public class Square{
+	public Point topLeft;
+    public double side;
+}
+public class Rectangle{
+	public Point topLeft;
+    public double height;
+    public double width;
+}
+public class Geometry{
+	public final double PI = 3.141592;
+    public double area(Object shape) throws NoSuchShapeException{
+    	if (shape instanceof Square){
+        	Square s = (Square)shape;
+            return s.side * s.side;
+        }else if (shape instanceof Rectangle){
+        	Rectangle r = (Rectangle)shape;
+            return r.height * r.width;
+        }
+        throw new NoSuchShapeException();
+    }
+}
+```
+위 코드는 class를 사용하지만 객체지향적인 코드는 아니고 절차지향적인 코드이다. class를 쓰는데 왜 절차지향적인 코드를 짜는거지라 생각하며 좋지않은 코드라 생각했다. 하지만 이 책의 저자는 전혀다른 관점을 제시해주었다. Geometry클래스에 둘레길이를 구하는 perimeter()함수를 추가하고 싶다면 딱 함수만 추가하면 된다. 하지만 새로운 도형을 추가할때는 Geometry클래스에 모든 함수를 수정해야한다. 아래의 객체지향코드는 정반대이다. perimeter()함수를 추가해야 한다면 모든 도형클래스를 수정해야 한다. 하지만 새 도형을 추가할때는 기존에 있는 함수를 수정하지 않아도 된다.
+```java
+public class Square implements Shape{
+	private Point topLeft;
+    private double side;
+    
+    public double area(){
+    	return side*side;
+    }
+}
+public class Rectangle implements Shape{
+	private Point topLeft;
+    private double height;
+    private double width;
+    
+    public double area(){
+    	return height * width;
+    }
+}
+```
+요약하자면 아래와 같다.
+* 절차지향적인 코드는 함수 추가에 용이하지만 자료구조들을 추가하는 것이 힘들다.
+* 객체지향적인 코드는 새로운 객체를 추가하는게 용이하지만 함수추가가 어렵다.
+* **"때로는 단순한 자료구조와 절차적인 코드가 가장 적합한 상황이 있다."**
+
+# 디미터 법칙
+>
+모듈은 자신이 조작하는 객체의 속사정을 몰라야 한다.
+
+클래스 C의 메서드 f는 다음과 같은 객체의 메서드만 호출해야 한다.
+* 클래스 C
+* f가 생성한 객체
+* f인수로 넘어온 객체
+* C 인스턴스 변수에 저장된 객체
+
+### 기차 충돌
+```java
+final String outputDir = ctxt.getOptions().getScratchDir().getAbsolutePath();
+```
+위와 같은 코드는 여러 객차가 한줄로 이어진 기차처럼 보이기 때문에 조잡하다 여겨지는 방식이므로 피하는 편이 좋다.
+```java
+Options opts = ctxt.getOptions()
+File scratchDir = opts.getScratchDir();
+final String outputDir = scratchDir.getAbsolutePath();
+```
+* ctxt객체는 Option을 포함하고 opts는 ScratchDir을 포함하고 ScratchDir은 AbsolutePath를 포함한다는 사실을 getter메소드를 통해 알 수 있다. 함수 하나가 아는 지식이 많다. 
+>
+이 부분은 이해가 잘 가지 않아 망나니 개발자님 글을 참고하였고 그나마 이해가 갔다.
+```java
+@Getter
+public class User { 
+	private String email; 
+    private String name; 
+    private Address address; 
+}
+
+@Getter
+public class Address { 
+	private String region;
+    private String details;
+}
+```
+위와 같은 코드가 있을 때 아래 서비스 함수를 사용한다면 디미터의 법칙을 위반하고 있는 코드다. 객체에게 메세지를 보내는 것이 아니라 객체의 자료를 확인하고 있기 때문이다. 이 서비스 머세드를 보면 user가 Address를 포함하고 있다는 사실을 알고 Address는 Region을 포함하고 있다는 사실을 알 수 있다. 추상화도 이루어지지 않았다. 이를 수정하면 아래와 같다.
+```java
+@Service
+public class NotificationService { 
+	public void sendMessageForSeoulUser(final User user) {
+    	if("서울".equals(user.getAddress().getRegion())) {
+        	sendNotification(user);
+	    }
+    }
+}
+```
+아래의 코드는 우선 Getter메소드가 사라졌다.SeoulUser인지 확인해야 하는 메소드를 추가하였고 Address에는 SeoulRegion인지 확인하는 메소드를 추가하였다. 서비스에서는 isSeoulUser()메소드만 호출하면 되기 때문에 객체내부가 어떻게 구성되어 있는지 알 수 없다. 
+```java
+public class Address { 
+	private String region;
+    private String details;
+    public boolean isSeoulRegion() { 
+    	return "서울".equals(region); 
+    } 
+}
+public class User { 
+	private String email; 
+    private String name; 
+    private Address address; 
+    public boolean isSeoulUser() { 
+	    return address.isSeoulRegion();
+    }
+}
+```
+
+### 잡종 구조
+절반은 객체이고 절반은 자료 구조인 상태를 잡종구조라 한다. 잡종구조는
+새로운 함수 새로운 자료구조도 추가하기 어렵기 때문에 잡종구조는 피해야 한다.
+
+# 자료전달 객체
+자료 구조체의 전형적인 형태는 공개변수만 있고 함수가 없는 클래스이다.
+이런 자료구조체를 때때로 자료 전달 객체(DTO)라고 한다.
+좀 더 일반적인 형태는 bean구조이다. bean은 비공개 변수를 공개 게터/세터로 조작한다.
+* **"일종의 사이비 캡슐화로 일부 \*\*순수주의자나 만족시킬 뿐 별다른 이익을 제공하지 않는다....?"**
+### 활성 레코드
+활성 레코드는 DTO의 특수한 형태이다. save나 find같은 탐색 함수도 제공한다. 활성 레코드에 비즈니스 로직 메소드를 추가해 객체로 취급하는 개발자가 흔한데 잡종구조다.
+해답은 활성 레코드는 자료구조이고 객체는 따로 생성한다.
+
+# 결론
+* **객체는 동작을 공개하고 자료를 숨긴다.**
+* 객체는 새 객체타입을 추가하기는 쉽지만 새 동작을 추가하기는 어렵다.
+* 자료구조는 자료를 노출한다.
+* 자료구조에 동작을 추가하기는 쉽지만 함수에 자료구조를 추가하기는 어렵다.
+* 편견없이 현 상황에 맞는 해결책을 찾아야함!!
+# 참고한 사이트
+[망나니 개발자](https://mangkyu.tistory.com/147#:~:text=%EC%A6%89%2C%20%EB%94%94%EB%AF%B8%ED%84%B0%EC%9D%98%20%EB%B2%95%EC%B9%99,%EC%9B%90%EC%B9%99\)%20%EC%9C%BC%EB%A1%9C%EB%8F%84%20%EC%95%8C%EB%A0%A4%EC%A0%B8%20%EC%9E%88%EB%8B%A4.)
